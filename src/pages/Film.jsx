@@ -21,15 +21,22 @@ function Film({ openSignIn }) {
 
   useEffect(() => {
     (async () => {
-      const gatewayURL = '/api/gateway';
-      const apiURL = `https://api.themoviedb.org/3/movie/${id}?append_to_response=credits,alternative_titles`;
-      const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
+      // const gatewayURL = '/api/gateway';
+      // const apiURL = `https://api.themoviedb.org/3/movie/${id}?append_to_response=credits,alternative_titles`;
+      // const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
+      const fetchURL = `http://localhost:8080/api/movies/${id}`;
 
-      const response = await fetch(fetchURL);
-      const data = await response.json();
 
-      console.log(data);
-      setFilmData(data);
+      try {
+  const response = await fetch(fetchURL);
+  if (!response.ok) throw new Error("Movie not found");
+  const data = await response.json();
+  setFilmData(data);
+} catch (error) {
+  console.error("Failed to load movie:", error);
+  // maybe setFilmData(null) or navigate to a 404 page
+}
+
     })();
   }, []);
 

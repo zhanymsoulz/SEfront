@@ -8,27 +8,63 @@ import { login } from '../firebase';
 import './styles/SignIn.css';
 
 function SignIn({ closePanel }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
 
+  //  const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+  //   setShowError(false);
+  //   toast.dismiss();
+
+  //   try {
+  //     await login(email, password);
+  //     closePanel();
+  //     toast.success('Logged in successfully.');
+  //   } catch (error) {
+  //     setShowError(true);
+  //   }
+
+  //   setIsLoading(false);
+  // };
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setShowError(false);
-    toast.dismiss();
+  e.preventDefault();
+  setIsLoading(true);
+  setShowError(false);
+  toast.dismiss();
 
-    try {
-      await login(email, password);
-      closePanel();
-      toast.success('Logged in successfully.');
-    } catch (error) {
-      setShowError(true);
-    }
+  try {
+    
+    const response = await fetch('http://localhost:8080/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
+    });
 
-    setIsLoading(false);
-  };
+    if (!response.ok) throw new Error('Invalid credentials');
+
+    const data = await response.json();
+const token = data.token;
+localStorage.setItem('token', token);
+
+
+    toast.success('Logged in successfully.');
+    closePanel();
+  } catch (error) {
+    console.error('Login error:', error);
+    setShowError(true);
+  }
+
+  setIsLoading(false);
+};
+
 
   return (
     <form
@@ -40,14 +76,14 @@ function SignIn({ closePanel }) {
         ×
       </button>
       <div className="SignIn-inputContainer">
-        <label htmlFor="signin-email">Email</label>
+        <label htmlFor="signin-username">Username</label>
         <input
-          type="email"
-          name="email"
-          id="signin-email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+  type="text"
+  name="username"
+  id="signin-username"
+  value={username}
+  onChange={(e) => setUsername(e.target.value)}
+/>
       </div>
       <div className="SignIn-inputContainer">
         <div className="SignIn-inputContainerTop">

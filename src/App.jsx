@@ -60,6 +60,8 @@ function App() {
             element={<Film openSignIn={toggleShowSignIn} />}
           />
           <Route path="/member/:uid/:tab?" element={<Member />} />
+          <Route path="/member" element={<Member />} />
+
           <Route path="/about/:path?" element={<About />} />
           <Route
             path="/settings/:tab?"

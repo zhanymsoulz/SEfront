@@ -18,9 +18,15 @@ function Films() {
     (async () => {
       const gatewayURL = '/api/gateway';
       const apiURL = `https://api.themoviedb.org/3/trending/movie/${timeWindow}`;
-      const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
+      //const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
+      const fetchURL = 'http://localhost:8080/api/movies/popular';
 
-      const response = await fetch(fetchURL, { signal });
+
+      // const response = await fetch(fetchURL, { signal });
+      // const data = await response.json();
+      // setPopularFilmsData(data);
+
+      const response = await fetch(fetchURL);
       const data = await response.json();
       setPopularFilmsData(data);
 
