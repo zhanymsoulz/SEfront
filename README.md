@@ -29,3 +29,4 @@ The best Letterboxd clone out there.
 ![Search page](https://github.com/McStanley/stanboxd/assets/90787698/6056efc7-6977-4428-8028-2ac7e1fcd4cf)
 
 ![Settings page](https://github.com/McStanley/stanboxd/assets/90787698/ac53f1f9-baee-4ea6-b204-4f6692276e07)
+# SEfront
