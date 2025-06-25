@@ -16,8 +16,8 @@ function Films() {
     const { signal } = controller;
 
     (async () => {
-      const gatewayURL = '/api/gateway';
-      const apiURL = `https://api.themoviedb.org/3/trending/movie/${timeWindow}`;
+      // const gatewayURL = '/api/gateway';
+      // const apiURL = `https://api.themoviedb.org/3/trending/movie/${timeWindow}`;
       //const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
       const fetchURL = 'http://localhost:8080/api/movies/popular';
 
