@@ -1,88 +1,41 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { doc } from 'firebase/firestore';
-import { useDocumentDataOnce } from 'react-firebase-hooks/firestore';
 import PropTypes from 'prop-types';
-import { db } from '../firebase';
-import Poster from './Poster';
-import StarRating from './StarRating';
-import DefaultAvatar from '../assets/avatar.png';
-import './styles/ReviewsPageReview.css';
+import { useEffect } from 'react';
 
-function ReviewsPageReview({ filmId, userId, rating, text, onLoad }) {
-  const [filmData, setFilmData] = useState(null);
-  const [userData] = useDocumentDataOnce(doc(db, 'users', userId));
+// Simple star display (read-only)
+function StarDisplay({ value }) {
+  return (
+    <span>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} style={{ color: i <= value ? '#FFD700' : '#888' }}>★</span>
+      ))}
+    </span>
+  );
+}
 
+StarDisplay.propTypes = {
+  value: PropTypes.number,
+};
+
+StarDisplay.defaultProps = {
+  value: 0,
+};
+
+function ReviewsPageReview({ filmId, userId, rating, text, onLoad, reviewId }) {
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    (async () => {
-      const gatewayURL = '/api/gateway';
-      const apiURL = `https://api.themoviedb.org/3/movie/${filmId}`;
-      const fetchURL = `${gatewayURL}?url=${encodeURIComponent(apiURL)}`;
-
-      const response = await fetch(fetchURL, { signal });
-      const data = await response.json();
-
-      setFilmData(data);
-      onLoad();
-    })();
-
-    return () => controller.abort();
-  }, []);
-
-  if (!filmData || !userData) {
-    return null;
-  }
-
-  const releaseYear = filmData.release_date
-    ? new Date(filmData.release_date).getFullYear()
-    : null;
+    if (onLoad) onLoad();
+  }, [onLoad]);
 
   return (
-    <article className="ReviewsPageReview">
-      {filmData && userData && (
-        <>
-          <div className="ReviewsPageReview-posterContainer">
-            <Poster
-              id={filmData.id}
-              path={filmData.poster_path}
-              size="w92"
-              altText={filmData.title}
-            />
-          </div>
-          <div className="ReviewsPageReview-main">
-            <div className="ReviewsPageReview-header">
-              <Link to={`/film/${filmId}`}>
-                <p className="ReviewsPageReview-filmTitle">{filmData.title}</p>
-              </Link>
-              <p className="ReviewsPageReview-filmReleaseYear">{releaseYear}</p>
-            </div>
-            <div className="ReviewsPageReview-subheader">
-              <Link
-                to={`/member/${userId}`}
-                className="ReviewsPageReview-avatarLink"
-              >
-                <img
-                  className="ReviewsPageReview-avatar"
-                  src={userData.avatarUrl || DefaultAvatar}
-                  alt={userData.username}
-                />
-              </Link>
-              <p className="ReviewsPageReview-reviewedBy">
-                Reviewed by{' '}
-                <span className="ReviewsPageReview-username">
-                  {userData.username}
-                </span>
-              </p>
-              <StarRating value={rating} />
-            </div>
-            <p className="ReviewsPageReview-text">{text}</p>
-          </div>
-        </>
-      )}
-    </article>
+    <div className="ReviewsPageReview">
+      {/* Example layout, adjust as needed */}
+      <div className="ReviewsPageReview-film">Film ID: {filmId}</div>
+      <div className="ReviewsPageReview-user">User ID: {userId}</div>
+      <div className="ReviewsPageReview-rating">
+        Rating: <StarDisplay value={rating || 0} />
+      </div>
+      <div className="ReviewsPageReview-text">{text}</div>
+      {/* Optionally, add edit/delete buttons here if needed */}
+    </div>
   );
 }
 
@@ -91,12 +44,15 @@ ReviewsPageReview.propTypes = {
   userId: PropTypes.string.isRequired,
   rating: PropTypes.number,
   text: PropTypes.string,
-  onLoad: PropTypes.func.isRequired,
+  onLoad: PropTypes.func,
+  reviewId: PropTypes.number,
 };
 
 ReviewsPageReview.defaultProps = {
   rating: null,
-  text: null,
+  text: '',
+  onLoad: () => {},
+  reviewId: null,
 };
 
 export default ReviewsPageReview;

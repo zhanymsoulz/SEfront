@@ -1,21 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import {
-  DocumentReference,
-  addDoc,
-  collection,
-  deleteDoc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from 'firebase/firestore';
 import PropTypes from 'prop-types';
-import { db } from '../firebase';
 import Poster from './Poster';
 import StarRating from './StarRating';
 import './styles/ReviewForm.css';
-
-const reviewsRef = collection(db, 'reviews');
 
 function ReviewForm({
   uid,
@@ -25,13 +13,13 @@ function ReviewForm({
   posterPath,
   reviewText,
   reviewRating,
-  reviewRef,
+  reviewId, // <-- use reviewId (number or null)
   closePanel,
 }) {
   const [text, setText] = useState(reviewText);
   const [rating, setRating] = useState(reviewRating);
   const [expandTextarea, setExpandTextArea] = useState(false);
-  const [showDelete] = useState(!!reviewRef);
+  const [showDelete] = useState(!!reviewId);
   const emptyReviewToastId = useRef(null);
 
   useEffect(
@@ -44,46 +32,72 @@ function ReviewForm({
   );
 
   const deleteReview = async () => {
-    if (reviewRef) {
-      await deleteDoc(reviewRef);
-      toast.success('Review has been successfully deleted.');
+    if (reviewId) {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8080/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        toast.success('Review has been successfully deleted.');
+      } else {
+        toast.error('Failed to delete review.');
+      }
     } else {
       toast.error('Review has already been deleted.');
     }
-
     closePanel();
   };
 
   const updateReview = async () => {
-    if (reviewRef) {
-      await updateDoc(reviewRef, {
-        rating,
-        text,
-        updatedAt: serverTimestamp(),
+    const token = localStorage.getItem('token');
+    if (reviewId) {
+      // Update existing review
+      const response = await fetch(`http://localhost:8080/reviews/${reviewId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: uid,
+          movieId: filmId,
+          content: text,
+          rating,
+        }),
       });
-
-      const updatedDoc = await getDoc(reviewRef);
-
-      if (!updatedDoc.get('rating') && !updatedDoc.get('text')) {
-        await deleteDoc(reviewRef);
+      if (response.ok) {
+        toast.success('Review has been successfully updated.');
+      } else {
+        toast.error('Failed to update review.');
       }
-
-      toast.success('Review has been successfully updated.');
     } else {
-      await addDoc(reviewsRef, {
-        user_id: uid,
-        film_id: filmId,
-        ...(rating && { rating }),
-        ...(text && { text }),
-        createdAt: serverTimestamp(),
+      // Create new review
+      const response = await fetch('http://localhost:8080/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: uid,
+          movieId: filmId,
+          content: text,
+          rating,
+        }),
       });
-
-      toast.success('Review has been successfully added.');
+      if (response.ok) {
+        toast.success('Review has been successfully added.');
+      } else {
+        toast.error('Failed to add review.');
+      }
     }
   };
 
   const handleDelete = async () => {
-    if (confirm('Are you sure?')) {
+    if (window.confirm('Are you sure?')) {
       await deleteReview();
     }
   };
@@ -95,12 +109,10 @@ function ReviewForm({
       emptyReviewToastId.current = toast.error('Review cannot be empty.', {
         id: 'emptyReview',
       });
-
       return;
     }
 
     await updateReview();
-
     closePanel();
   };
 
@@ -166,7 +178,7 @@ ReviewForm.propTypes = {
   posterPath: PropTypes.string,
   reviewText: PropTypes.string,
   reviewRating: PropTypes.number,
-  reviewRef: PropTypes.instanceOf(DocumentReference),
+  reviewId: PropTypes.number, // <-- use reviewId, not reviewRef
   closePanel: PropTypes.func.isRequired,
 };
 
@@ -175,7 +187,7 @@ ReviewForm.defaultProps = {
   posterPath: null,
   reviewText: '',
   reviewRating: null,
-  reviewRef: null,
+  reviewId: null,
 };
 
 export default ReviewForm;

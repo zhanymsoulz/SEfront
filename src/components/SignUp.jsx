@@ -1,18 +1,8 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
-
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import PropTypes from 'prop-types';
-import { isUsernameAvailable, register } from '../firebase';
 import checkUsernameValidity from '../utils/checkUsernameValidity';
 import './styles/SignUp.css';
-
-const AUTH_ERRORS = {
-  'auth/email-already-in-use':
-    'That email address is already associated with an account.',
-  'auth/invalid-email': 'Please enter a valid email address.',
-  'auth/weak-password': 'Please enter a stronger password.',
-};
 
 function SignUp({ closePanel }) {
   const [email, setEmail] = useState('');
@@ -26,16 +16,12 @@ function SignUp({ closePanel }) {
     toast.dismiss();
 
     const emptyFields = [];
-
     if (!email) emptyFields.push('email');
     if (!username) emptyFields.push('username');
     if (!password) emptyFields.push('password');
 
     if (emptyFields.length) {
-      emptyFields.forEach((entry) => {
-        toast.error(`Please complete your ${entry}.`);
-      });
-
+      emptyFields.forEach((field) => toast.error(`Please complete your ${field}.`));
       return;
     }
 
@@ -48,78 +34,86 @@ function SignUp({ closePanel }) {
 
     setIsSubmitting(true);
 
-    if (!(await isUsernameAvailable(username))) {
-      toast.error('This username is taken.');
-      setIsSubmitting(false);
-
-      return;
-    }
-
     try {
-      await register(username, email, password);
+      const response = await fetch('http://localhost:8080/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.message || 'Registration failed.');
+        return;
+      }
+
+      toast.success('Registration successful!');
       closePanel();
     } catch (error) {
-      console.log(error);
-
-      const unknownErrorMessage = (
-        <span>
-          Unknown error occured.{' '}
-          <a href="https://github.com/McStanley">Contact me</a>.
-        </span>
-      );
-
-      const toastContent = AUTH_ERRORS[error.code] || unknownErrorMessage;
-
-      toast.error(toastContent);
+      toast.error('Network error. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGoogleSignIn = () => {
+    // Redirects to Spring Security's default Google OAuth2 login endpoint
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
   return (
     <form className="SignUp" onSubmit={handleSubmit} noValidate>
       <div className="SignUp-header">
         <p className="SignUp-title">Join Stanboxd</p>
-        <button className="SignUp-close" type="button" onClick={closePanel}>
-          ×
-        </button>
+        <button className="SignUp-close" type="button" onClick={closePanel}>×</button>
       </div>
+
       <div className="SignUp-inputContainer">
         <label htmlFor="signup-email">Email address</label>
         <input
           className="wide"
           type="email"
-          name="email"
           id="signup-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
+
       <div className="SignUp-inputContainer">
         <label htmlFor="signup-username">Username</label>
         <input
           type="text"
-          name="username"
           id="signup-username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
       </div>
+
       <div className="SignUp-inputContainer">
         <label htmlFor="signup-password">Password</label>
         <input
           type="password"
-          name="password"
           id="signup-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
+
       <button
-        className={`SignUp-submit ${isSubmitting && 'disabled'}`}
+        className={`SignUp-submit ${isSubmitting ? 'disabled' : ''}`}
         type="submit"
+        disabled={isSubmitting}
       >
         Sign up
       </button>
+
+      <div className="SignUp-google">
+        <p>Or sign up with:</p>
+          <button type="button" className="google-button" onClick={handleGoogleSignIn}>
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" />
+            Sign up with Google
+          </button>
+      </div>
     </form>
   );
 }

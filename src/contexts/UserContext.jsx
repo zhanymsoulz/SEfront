@@ -1,35 +1,42 @@
-import { createContext, useContext, useMemo } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { useDocumentData } from 'react-firebase-hooks/firestore';
-import { doc } from 'firebase/firestore';
+import { createContext, useContext, useMemo, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { auth, db } from '../firebase';
 
 const UserContext = createContext(null);
-
 export const useUserContext = () => useContext(UserContext);
 
 export function UserProvider({ children }) {
-  const [user, userLoading] = useAuthState(auth);
-  const docRef = user ? doc(db, 'users', user.uid) : null;
-  const [userData, userDataLoading] = useDocumentData(docRef);
+  const [userData, setUserData] = useState(null);
+  const [userLoading, setUserLoading] = useState(true);
 
-  const data =
-    !user || !userData
-      ? null
-      : {
-          uid: user.uid,
-          username: userData.username,
-          avatarUrl: userData.avatarUrl || null,
-        };
+  const fetchUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setUserData(null);
+      setUserLoading(false);
+      return;
+    }
 
-  const loading = userLoading || userDataLoading;
+    try {
+      const res = await fetch('http://localhost:8080/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Unauthorized');
+      const data = await res.json();
+      setUserData({ uid: data.id, username: data.username, avatarUrl: data.avatarUrl || null });
+    } catch {
+      setUserData(null);
+    } finally {
+      setUserLoading(false);
+    }
+  };
 
-  const value = useMemo(() => [data, loading], [data, loading]);
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
+  const value = useMemo(() => [userData, userLoading, fetchUser], [userData, userLoading]);
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
-UserProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};
+UserProvider.propTypes = { children: PropTypes.node.isRequired };
+export default UserProvider;

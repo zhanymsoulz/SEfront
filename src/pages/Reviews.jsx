@@ -1,26 +1,29 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { collection, limit, orderBy, query } from 'firebase/firestore';
-import { useCollectionData } from 'react-firebase-hooks/firestore';
 import LinearProgress from '@mui/material/LinearProgress';
-import { db } from '../firebase';
 import Loading from '../components/Loading';
 import ReviewsPageReview from '../components/ReviewsPageReview';
 import './styles/Reviews.css';
 
-const reviewsRef = collection(db, 'reviews');
-
 function Reviews() {
   const [order, setOrder] = useState('desc');
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [loadedReviews, setLoadedReviews] = useState([]);
 
-  const reviewsQuery = query(
-    reviewsRef,
-    orderBy('createdAt', order),
-    limit(20)
-  );
-
-  const [reviews, reviewsLoading] = useCollectionData(reviewsQuery);
+  useEffect(() => {
+    setReviewsLoading(true);
+    fetch(`http://localhost:8080/reviews?order=${order}&limit=20`)
+      .then(res => res.json())
+      .then(data => {
+        setReviews(data);
+        setReviewsLoading(false);
+      })
+      .catch(() => {
+        setReviews([]);
+        setReviewsLoading(false);
+      });
+  }, [order]);
 
   useLayoutEffect(() => {
     setLoadedReviews(new Array(reviews?.length).fill(false));
@@ -28,32 +31,25 @@ function Reviews() {
 
   const handleReviewLoad = (reviewIndex) => {
     setLoadedReviews((prevLoadedReviews) =>
-      prevLoadedReviews.map((entry, index) => {
-        if (index === reviewIndex) {
-          return true;
-        }
-
-        return entry;
-      })
+      prevLoadedReviews.map((entry, index) => (index === reviewIndex ? true : entry))
     );
   };
 
   const reviewsElements = reviews?.map((entry, index) => (
     <ReviewsPageReview
-      filmId={entry.film_id}
-      userId={entry.user_id}
-      rating={entry.rating}
-      text={entry.text}
+      filmId={entry.movieId}
+      userId={entry.userId}
+      rating={null} // No rating shown
+      text={entry.content}
       onLoad={() => handleReviewLoad(index)}
-      key={`${entry.film_id}${entry.user_id}`}
+      key={entry.id}
     />
   ));
 
   const reviewsReady = !reviewsLoading && !loadedReviews.includes(false);
 
   const loadingProgress =
-    (loadedReviews.filter((entry) => entry === true).length /
-      loadedReviews.length) *
+    (loadedReviews.filter((entry) => entry === true).length / loadedReviews.length) *
     100;
 
   const reviewsStyles = {
